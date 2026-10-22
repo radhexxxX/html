@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mi lista de tareas</title>
+<style>
+:root {
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  color-scheme: light;
+  --fondo: #fbf6ff; --tarjeta: #ffffff; --texto: #3d3360; --suave: #7d7299;
+  --linea: #e7dff9; --acento: #8a6be0; --acento-t: #ffffff; --rosa: #f8dced;
+  --sobre1: #fff4fa; --sobre2: #f1edff; --papel1: #fffdfd; --papel2: #fff8fc;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --fondo: #1d1830; --tarjeta: #272040; --texto: #efe9ff; --suave: #b3a6d6;
+    --linea: #3d3460; --acento: #b59cff; --acento-t: #1d1830; --rosa: #5a3a64;
+    --sobre1: #2c2147; --sobre2: #231c3b; --papel1: #332a52; --papel2: #2d2548;
+  }
+}
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+* { box-sizing: border-box; }
+body { position: relative; min-height: 100vh; margin: 0; background: var(--fondo); color: var(--texto);
+  font-family: "Nunito", "Segoe UI", system-ui, sans-serif; line-height: 1.5; }
+main { max-width: 640px; margin: 0 auto; padding: 28px 16px 48px; }
+h1 { font-family: Georgia, "Times New Roman", serif; font-size: 30px; margin: 0 0 4px; }
+h2 { font-family: Georgia, serif; font-size: 21px; margin: 0 0 4px; }
+.subtitulo { color: var(--suave); font-size: 14px; margin: 0 0 16px; }
+.tarjeta { background: var(--tarjeta); border: 1px solid var(--linea); border-radius: 18px; padding: 20px; margin-top: 18px; }
+button, input { font: inherit; color: inherit; }
+button:focus-visible, input:focus-visible, .pegatina:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+
+.nueva { display: flex; gap: 8px; }
+.nueva input { flex: 1; min-width: 0; padding: 11px 13px; border: 1px solid var(--linea); border-radius: 12px; background: var(--fondo); }
+.primario { border: 0; background: var(--acento); color: var(--acento-t); border-radius: 12px; padding: 11px 18px; font-weight: 700; cursor: pointer; }
+.filtros { display: flex; gap: 6px; margin: 16px 0 10px; flex-wrap: wrap; }
+.filtro { border: 1px solid var(--linea); background: transparent; border-radius: 999px; padding: 6px 14px; font-size: 13px; cursor: pointer; }
+.filtro[aria-pressed="true"] { background: var(--acento); color: var(--acento-t); border-color: var(--acento); }
+.resumen { font-size: 13px; color: var(--suave); display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 8px; }
+.barra { height: 8px; border-radius: 99px; background: var(--linea); overflow: hidden; margin-top: 10px; }
+.barra div { height: 100%; width: 0; background: var(--acento); transition: width .3s; }
+.lista { list-style: none; margin: 0; padding: 0; }
+.tarea { display: flex; align-items: center; gap: 10px; padding: 11px 4px; border-bottom: 1px solid var(--linea); }
+.tarea[hidden] { display: none !important; }
+.tarea input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--acento); flex: none; cursor: pointer; }
+.tarea span { flex: 1; word-break: break-word; }
+.tarea.hecha span { text-decoration: line-through; color: var(--suave); }
+.borrar { border: 0; background: transparent; color: var(--suave); font-size: 20px; cursor: pointer; padding: 2px 8px; border-radius: 8px; }
+.borrar:hover { color: var(--acento); }
+.vacio { text-align: center; color: var(--suave); padding: 22px 0 8px; font-size: 14px; }
+.enlace { border: 0; background: none; color: var(--acento); cursor: pointer; font-size: 13px; text-decoration: underline; padding: 0; }
+
+.zona-sobre { position: relative; min-height: 285px; overflow: hidden; border: 1px solid var(--linea); border-radius: 18px; padding: 15px;
+  background: linear-gradient(135deg, var(--sobre1), var(--sobre2)); touch-action: none; }
+.sobre-carta { position: absolute; left: 8%; right: 8%; top: 24px; bottom: 25px; border-radius: 12px; border: 2px solid var(--linea);
+  background: linear-gradient(145deg, var(--papel1), var(--papel2)); box-shadow: 0 8px 18px #7c5c9c22; }
+.sobre-carta::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 48%;
+  background: linear-gradient(135deg, var(--rosa), var(--sobre2)); clip-path: polygon(0 0, 100% 0, 50% 100%); opacity: .9; }
+.sobre-carta::after { content: "una notita para ti ♡"; position: absolute; left: 0; right: 0; bottom: 12px; text-align: center;
+  color: var(--suave); font-family: Georgia, serif; font-style: italic; font-size: 14px; pointer-events: none; }
+.pegatina { position: absolute; z-index: 3; display: grid; place-items: center; width: 58px; height: 58px; border: 2px solid #fff;
+  border-radius: 18px 15px 20px 14px; background: linear-gradient(145deg, #fff, #ffe5f2 55%, #e7e0ff);
+  box-shadow: 0 4px 10px #8a65b44a, 0 0 9px #e9b8ff8c; font-size: 31px; cursor: grab; user-select: none; touch-action: none; }
+.pegatina:active { cursor: grabbing; }
+.pegatina::after { content: "✦"; position: absolute; right: -5px; top: -8px; color: #d6a3e9; font-size: 20px; pointer-events: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .pegatina { animation: brilli 2.4s ease-in-out infinite; }
+  @keyframes brilli { 0%,100% { filter: drop-shadow(0 0 2px #f3c6ff); } 50% { filter: drop-shadow(0 0 7px #e4a9ff); } }
+}
+.bandeja { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 13px; }
+.boton-pegatina { display: flex; align-items: center; gap: 7px; border: 1px solid var(--linea); background: var(--tarjeta);
+  border-radius: 12px; padding: 9px 12px; font-size: 13px; cursor: pointer; }
+.boton-pegatina:hover { transform: translateY(-2px); }
+.boton-pegatina span { font-size: 23px; }
+.ayuda { color: var(--suave); font-size: 12px; margin: 12px 0 0; }
+.limpiar { margin-top: 12px; border: 1px solid var(--linea); background: transparent; color: var(--acento); border-radius: 10px; padding: 8px 11px; font-size: 12px; cursor: pointer; }
+.capa { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 50; }
+.gato { position: absolute; pointer-events: auto; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.gato svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 6px 5px #0003); }
+.gato.sel { outline: 2px dashed var(--acento); outline-offset: 4px; border-radius: 10px; }
+.gato.arr { cursor: grabbing; }
+.herr { position: absolute; left: 50%; top: -46px; transform: translateX(-50%); display: none; gap: 4px; background: var(--tarjeta); border: 1px solid var(--linea); border-radius: 12px; padding: 4px; box-shadow: 0 4px 12px #0003; }
+.gato.sel .herr { display: flex; }
+.gato.abajo .herr { top: auto; bottom: -46px; }
+.herr button { border: 0; background: transparent; width: 34px; height: 34px; border-radius: 8px; font-size: 17px; cursor: pointer; color: var(--texto); }
+.herr button:hover { background: var(--linea); }
+.boton-pegatina svg { width: 38px; height: auto; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Mi lista de tareas</h1>
+  <p class="subtitulo">Apunta lo que tienes que hacer y márcalo cuando esté listo.</p>
+
+  <section class="tarjeta" aria-label="Tareas">
+    <div class="nueva">
+      <input id="entrada" type="text" maxlength="120" placeholder="Escribe una tarea nueva" aria-label="Nueva tarea" autocomplete="off">
+      <button class="primario" id="anadir" type="button">Añadir tarea</button>
+    </div>
+    <div class="filtros" role="group" aria-label="Filtrar tareas">
+      <button class="filtro" type="button" data-filtro="todas" aria-pressed="true">Todas</button>
+      <button class="filtro" type="button" data-filtro="pendientes" aria-pressed="false">Pendientes</button>
+      <button class="filtro" type="button" data-filtro="hechas" aria-pressed="false">Hechas</button>
+    </div>
+    <ul class="lista" id="lista"></ul>
+    <p class="vacio" id="vacio">Aún no tienes tareas. Escribe la primera arriba.</p>
+    <div class="barra" aria-hidden="true"><div id="progreso"></div></div>
+    <div class="resumen">
+      <span id="resumen"></span>
+      <button class="enlace" id="quitar-hechas" type="button">Borrar las hechas</button>
+    </div>
+  </section>
+
+  <section class="tarjeta" id="gatitos">
+    <h2>🐾 Mis gatitos</h2>
+    <p class="subtitulo">Añade gatitos y colócalos donde quieras de la página. Toca uno para cambiar su tamaño, voltearlo o quitarlo.</p>
+    <div class="bandeja" id="bandeja-gatos" aria-label="Añadir gatitos"></div>
+    <button class="limpiar" id="quitar-gatos" type="button">Quitar todos los gatitos</button>
+  </section>
+
+  <section class="tarjeta rincon-carta" id="sobre">
+    <h2>💌 Mi sobre mágico</h2>
+    <p class="subtitulo">Decora tu cartita con gatitos brillantes. Añade pegatinas y arrástralas al lugar que quieras.</p>
+    <div class="zona-sobre" id="zona-sobre" aria-label="Zona para decorar el sobre">
+      <div class="sobre-carta" aria-hidden="true"></div>
+    </div>
+    <div class="bandeja" aria-label="Añadir pegatinas">
+      <button class="boton-pegatina" type="button" data-nueva-pegatina="🐱"><span>🐱</span> Gatito</button>
+      <button class="boton-pegatina" type="button" data-nueva-pegatina="😽"><span>😽</span> Besitos</button>
+      <button class="boton-pegatina" type="button" data-nueva-pegatina="🐈"><span>🐈</span> Michi</button>
+      <button class="boton-pegatina" type="button" data-nueva-pegatina="🐾"><span>🐾</span> Huellitas</button>
+      <button class="boton-pegatina" type="button" data-nueva-pegatina="💖"><span>💖</span> Corazón</button>
+    </div>
+    <p class="ayuda">✨ Pulsa un botón para añadir una pegatina. Después, arrástrala con el ratón o con el dedo.</p>
+    <button class="limpiar" id="reiniciar-sobre" type="button">Volver a decorar desde el principio</button>
+  </section>
+</main>
+<div class="capa" id="capa"></div>
+
+<script>
+(function () {
+  var CLAVE = "tareas-v1";
+  var tareas = [], filtro = "todas";
+  var lista = document.getElementById("lista"), entrada = document.getElementById("entrada");
+
+  function cargar() {
+    try { var d = JSON.parse(localStorage.getItem(CLAVE)); if (Array.isArray(d)) return d; } catch (e) {}
+    return [{ id: 1, texto: "Probar la lista de tareas", hecha: false }, { id: 2, texto: "Decorar el sobre con pegatinas", hecha: false }];
+  }
+  function guardar() { try { localStorage.setItem(CLAVE, JSON.stringify(tareas)); } catch (e) {} }
+
+  function pintar() {
+    lista.innerHTML = "";
+    tareas.forEach(function (t) {
+      var li = document.createElement("li");
+      li.className = "tarea" + (t.hecha ? " hecha" : "");
+      li.hidden = (filtro === "pendientes" && t.hecha) || (filtro === "hechas" && !t.hecha);
+      var cb = document.createElement("input");
+      cb.type = "checkbox"; cb.checked = t.hecha; cb.setAttribute("aria-label", "Marcar «" + t.texto + "» como hecha");
+      cb.addEventListener("change", function () { t.hecha = cb.checked; guardar(); pintar(); });
+      var sp = document.createElement("span"); sp.textContent = t.texto;
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "borrar"; b.textContent = "×"; b.setAttribute("aria-label", "Borrar «" + t.texto + "»");
+      b.addEventListener("click", function () { tareas = tareas.filter(function (x) { return x !== t; }); guardar(); pintar(); });
+      li.append(cb, sp, b); lista.appendChild(li);
+    });
+    actualizarResumen();
+  }
+
+  function actualizarResumen() {
+    var total = tareas.length, hechas = tareas.filter(function (t) { return t.hecha; }).length;
+    document.getElementById("resumen").textContent = hechas + " de " + total + " completadas";
+    document.getElementById("progreso").style.width = (total ? hechas / total * 100 : 0) + "%";
+    var visibles = lista.querySelectorAll(".tarea:not([hidden])").length;
+    var vacio = document.getElementById("vacio");
+    vacio.hidden = visibles > 0;
+    vacio.textContent = total === 0 ? "Aún no tienes tareas. Escribe la primera arriba." : "No hay tareas en este filtro.";
+  }
+
+  function anadir() {
+    var texto = entrada.value.trim();
+    if (!texto) { entrada.focus(); return; }
+    tareas.push({ id: Date.now(), texto: texto, hecha: false });
+    entrada.value = ""; guardar(); pintar(); entrada.focus();
+  }
+  document.getElementById("anadir").addEventListener("click", anadir);
+  entrada.addEventListener("keydown", function (e) { if (e.key === "Enter") anadir(); });
+  document.querySelectorAll(".filtro").forEach(function (f) {
+    f.addEventListener("click", function () {
+      filtro = f.dataset.filtro;
+      document.querySelectorAll(".filtro").forEach(function (o) { o.setAttribute("aria-pressed", String(o === f)); });
+      pintar();
+    });
+  });
+  document.getElementById("quitar-hechas").addEventListener("click", function () {
+    tareas = tareas.filter(function (t) { return !t.hecha; }); guardar(); pintar();
+  });
+
+  /* Pegatinas arrastrables */
+  var zona = document.getElementById("zona-sobre");
+  var iniciales = [{ e: "🐱", l: "22%", t: "48px" }, { e: "😽", l: "57%", t: "110px" }];
+
+  function preparar(p) {
+    p.addEventListener("pointerdown", function (ev) {
+      ev.preventDefault();
+      p.setPointerCapture(ev.pointerId);
+      var z = zona.getBoundingClientRect(), r = p.getBoundingClientRect();
+      var dx = ev.clientX - r.left, dy = ev.clientY - r.top;
+      p.style.left = (r.left - z.left) + "px"; p.style.top = (r.top - z.top) + "px";
+      p.style.zIndex = 4;
+      function mover(m) {
+        var x = Math.max(0, Math.min(zona.clientWidth - p.offsetWidth, m.clientX - z.left - dx));
+        var y = Math.max(0, Math.min(zona.clientHeight - p.offsetHeight, m.clientY - z.top - dy));
+        p.style.left = x + "px"; p.style.top = y + "px";
+      }
+      function soltar() {
+        p.style.zIndex = 3;
+        p.removeEventListener("pointermove", mover);
+        p.removeEventListener("pointerup", soltar);
+        p.removeEventListener("pointercancel", soltar);
+      }
+      p.addEventListener("pointermove", mover);
+      p.addEventListener("pointerup", soltar);
+      p.addEventListener("pointercancel", soltar);
+    });
+  }
+  function nueva(emoji, l, t) {
+    var p = document.createElement("div");
+    p.className = "pegatina"; p.textContent = emoji;
+    p.setAttribute("role", "img"); p.setAttribute("aria-label", "Pegatina " + emoji);
+    p.style.left = l || (10 + Math.random() * 65) + "%";
+    p.style.top = t || (45 + Math.random() * 150) + "px";
+    zona.appendChild(p); preparar(p);
+  }
+  function reiniciar() {
+    zona.querySelectorAll(".pegatina").forEach(function (p) { p.remove(); });
+    iniciales.forEach(function (s) { nueva(s.e, s.l, s.t); });
+  }
+  document.querySelectorAll("[data-nueva-pegatina]").forEach(function (b) {
+    b.addEventListener("click", function () { nueva(b.dataset.nuevaPegatina); });
+  });
+  document.getElementById("reiniciar-sobre").addEventListener("click", reiniciar);
+
+  tareas = cargar(); pintar(); reiniciar();
+})();
+(function () {
+  var capa = document.getElementById("capa"), KEY = "gatitos-v1", n = 0, z = 10, gatos = [], sel = null;
+  var TIPOS = {
+    atigrado: { n: "Atigrado", b: "#a98a64", d: "#4a3826", l: "#e9dcc3", s: "#3b2c1d", e: "#b9c24a" },
+    naranja: { n: "Naranja", b: "#e39a4e", d: "#8f4a1b", l: "#fbe3c2", s: "#b5611f", e: "#7fb069" },
+    gris: { n: "Gris", b: "#9aa3ad", d: "#3f464f", l: "#e6e9ec", s: "#6b747e", e: "#d9a93a" },
+    negro: { n: "Negro", b: "#2c2a2e", d: "#09090a", l: "#48454c", e: "#e3c23a", pk: "#8a6670" },
+    siames: { n: "Siamés", b: "#efe3cf", d: "#b9a68a", l: "#fff8ec", p: "#5b4636", e: "#5aa7e0" },
+    blanco: { n: "Blanco", b: "#f6f4f1", d: "#b9b4ad", l: "#ffffff", e: "#4a9fd1" }
+  };
+
+  function svg(k) {
+    var c = TIPOS[k], i = ++n, pk = c.pk || "#e8a0a6", p = c.p || c.b, pw = c.p || c.l, S = c.s;
+    var st = function (d, w) { return '<path d="' + d + '" fill="none" stroke="' + S + '" stroke-width="' + (w || 3) + '" stroke-linecap="round" opacity=".75"/>'; };
+    var ojo = function (x) {
+      return '<ellipse cx="' + x + '" cy="50" rx="8.5" ry="9.5" fill="' + c.e + '" stroke="#1a1512" stroke-opacity=".55" stroke-width="1.4"/>' +
+        '<ellipse cx="' + x + '" cy="50" rx="2.8" ry="7.5" fill="#111"/>' +
+        '<circle cx="' + (x - 2.6) + '" cy="46.5" r="2.4" fill="#fff"/><circle cx="' + (x + 3) + '" cy="54" r="1" fill="#fff" opacity=".7"/>';
+    };
+    var rayas = S ? st("M60 24 L60 37") + st("M51 26 L54 36") + st("M69 26 L66 36") +
+      st("M28 92 q8 2 12 9") + st("M26 108 q8 1 13 8") + st("M92 92 q-8 2 -12 9") + st("M94 108 q-8 1 -13 8") : "";
+    var cola = '<path d="M92 122 C124 120 120 82 104 78" fill="none" stroke="' + p + '" stroke-width="11" stroke-linecap="round"/>' +
+      (S ? '<path d="M92 122 C124 120 120 82 104 78" fill="none" stroke="' + S + '" stroke-width="11" stroke-dasharray="3 7" opacity=".6"/>' : "");
+    return '<svg viewBox="0 0 120 145" xmlns="http://www.w3.org/2000/svg"><defs>' +
+      '<radialGradient id="g' + i + '" cx=".4" cy=".3" r=".85"><stop offset="0" stop-color="' + c.b + '"/><stop offset=".55" stop-color="' + c.b + '"/><stop offset="1" stop-color="' + c.d + '"/></radialGradient>' +
+      '<filter id="f' + i + '" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="' + i + '" result="t"/><feDisplacementMap in="SourceGraphic" in2="t" scale="2.2"/></filter></defs>' +
+      '<g filter="url(#f' + i + ')">' + cola +
+      '<ellipse cx="60" cy="100" rx="34" ry="36" fill="url(#g' + i + ')"/>' +
+      '<ellipse cx="60" cy="108" rx="16" ry="24" fill="' + c.l + '" opacity=".85"/>' +
+      '<ellipse cx="46" cy="132" rx="11" ry="7" fill="' + pw + '"/><ellipse cx="74" cy="132" rx="11" ry="7" fill="' + pw + '"/>' +
+      '<path d="M31 42 L34 9 L58 27 Z M89 42 L86 9 L62 27 Z" fill="' + p + '" stroke="' + p + '" stroke-width="4" stroke-linejoin="round"/>' +
+      '<path d="M37 36 L39 17 L52 28 Z M83 36 L81 17 L68 28 Z" fill="' + pk + '" opacity=".8"/>' +
+      '<ellipse cx="60" cy="52" rx="34" ry="30" fill="url(#g' + i + ')"/>' +
+      '<path d="M27 56 l-6 4 l7 1z M93 56 l6 4 l-7 1z" fill="' + c.b + '"/>' +
+      (c.p ? '<ellipse cx="60" cy="58" rx="19" ry="17" fill="' + c.p + '" opacity=".75"/>' : "") +
+      '<ellipse cx="50" cy="38" rx="16" ry="9" fill="#fff" opacity=".1"/>' + rayas +
+      '<ellipse cx="52" cy="65" rx="10" ry="8" fill="' + c.l + '"/><ellipse cx="68" cy="65" rx="10" ry="8" fill="' + c.l + '"/><ellipse cx="60" cy="73" rx="8" ry="5" fill="' + c.l + '"/></g>' +
+      ojo(46) + ojo(74) +
+      '<path d="M55.5 60 Q60 58 64.5 60 Q62 66 60 66.5 Q58 66 55.5 60Z" fill="' + pk + '"/>' +
+      '<path d="M60 66.5 L60 70 M60 70 Q55 74 51 71 M60 70 Q65 74 69 71" fill="none" stroke="#3a2a2a" stroke-width="1.2" stroke-linecap="round"/>' +
+      '<path d="M40 66 L14 60 M40 70 L14 73 M80 66 L106 60 M80 70 L106 73" stroke="#fff" stroke-width=".9" opacity=".9"/></svg>';
+  }
+
+  function guardar() {
+    try { localStorage.setItem(KEY, JSON.stringify(gatos.map(function (g) { return { t: g.t, x: g.x, y: g.y, w: g.w, f: g.f }; }))); } catch (e) {}
+  }
+  function aplicar(g) {
+    g.el.style.left = g.x + "px"; g.el.style.top = g.y + "px"; g.el.style.width = g.w + "px";
+    g.el.firstChild.style.transform = g.f ? "scaleX(-1)" : "";
+  }
+  function limitar(g) {
+    g.x = Math.max(0, Math.min(capa.clientWidth - g.w, g.x));
+    g.y = Math.max(0, Math.min(capa.clientHeight - g.el.offsetHeight, g.y));
+    aplicar(g);
+  }
+  function seleccionar(g) {
+    if (sel) sel.el.classList.remove("sel");
+    sel = g;
+    if (g) { g.el.classList.add("sel"); g.el.classList.toggle("abajo", g.y < 52); g.el.style.zIndex = ++z; }
+  }
+  function quitar(g) {
+    g.el.remove(); gatos.splice(gatos.indexOf(g), 1);
+    if (sel === g) sel = null;
+    guardar();
+  }
+  function tamano(g, f) { g.w = Math.max(70, Math.min(320, Math.round(g.w * f))); limitar(g); guardar(); }
+
+  function crear(d) {
+    var g = { t: d.t, x: d.x, y: d.y, w: d.w || 130, f: !!d.f }, el = document.createElement("div");
+    el.className = "gato"; el.tabIndex = 0; el.setAttribute("role", "img");
+    el.setAttribute("aria-label", "Gatito " + TIPOS[g.t].n + ". Arrástralo para moverlo");
+    el.innerHTML = svg(g.t) + '<div class="herr"><button type="button" data-a="mas" aria-label="Hacer más grande">＋</button><button type="button" data-a="menos" aria-label="Hacer más pequeño">－</button><button type="button" data-a="voltear" aria-label="Voltear">⇆</button><button type="button" data-a="borrar" aria-label="Quitar gatito">🗑</button></div>';
+    g.el = el; capa.appendChild(el); gatos.push(g); limitar(g);
+
+    el.addEventListener("pointerdown", function (e) {
+      if (e.target.closest(".herr")) return;
+      e.preventDefault(); seleccionar(g); el.setPointerCapture(e.pointerId); el.classList.add("arr");
+      var r = capa.getBoundingClientRect(), dx = e.clientX - r.left - g.x, dy = e.clientY - r.top - g.y;
+      function mv(m) { var r2 = capa.getBoundingClientRect(); g.x = m.clientX - r2.left - dx; g.y = m.clientY - r2.top - dy; limitar(g); }
+      function up() { el.classList.remove("arr"); el.removeEventListener("pointermove", mv); el.removeEventListener("pointerup", up); el.removeEventListener("pointercancel", up); guardar(); }
+      el.addEventListener("pointermove", mv); el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
+    });
+    el.querySelector(".herr").addEventListener("click", function (e) {
+      var b = e.target.closest("button"); if (!b) return;
+      var a = b.dataset.a;
+      if (a === "mas") tamano(g, 1.2); else if (a === "menos") tamano(g, 1 / 1.2);
+      else if (a === "voltear") { g.f = !g.f; aplicar(g); guardar(); }
+      else quitar(g);
+    });
+    el.addEventListener("keydown", function (e) {
+      var k = e.key, paso = 10;
+      if (k === "Delete" || k === "Backspace") { e.preventDefault(); quitar(g); return; }
+      if (k === "+") tamano(g, 1.2); else if (k === "-") tamano(g, 1 / 1.2);
+      else if (k === "ArrowLeft") g.x -= paso; else if (k === "ArrowRight") g.x += paso;
+      else if (k === "ArrowUp") g.y -= paso; else if (k === "ArrowDown") g.y += paso;
+      else return;
+      e.preventDefault(); limitar(g); guardar();
+    });
+    el.addEventListener("focus", function () { seleccionar(g); });
+    return g;
+  }
+
+  function nuevo(t) {
+    var r = capa.getBoundingClientRect(), w = 130;
+    var g = crear({ t: t, w: w, x: -r.left + 10 + Math.random() * Math.max(10, window.innerWidth - w - 20), y: -r.top + 70 + Math.random() * Math.max(10, window.innerHeight - 280) });
+    seleccionar(g); guardar();
+  }
+
+  var bandeja = document.getElementById("bandeja-gatos");
+  Object.keys(TIPOS).forEach(function (t) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "boton-pegatina"; b.innerHTML = svg(t) + " " + TIPOS[t].n;
+    b.addEventListener("click", function () { nuevo(t); });
+    bandeja.appendChild(b);
+  });
+  document.getElementById("quitar-gatos").addEventListener("click", function () { gatos.slice().forEach(quitar); });
+  document.addEventListener("pointerdown", function (e) { if (!e.target.closest(".gato")) seleccionar(null); });
+  window.addEventListener("resize", function () { gatos.forEach(limitar); });
+
+  var guardados = null;
+  try { guardados = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+  if (Array.isArray(guardados)) {
+    guardados.forEach(function (d) { if (TIPOS[d.t]) crear(d); });
+  } else {
+    var w = Math.min(window.innerWidth, 640);
+    crear({ t: "atigrado", x: 14, y: 90, w: 110 });
+    crear({ t: "naranja", x: Math.max(130, w - 130), y: 170, w: 110, f: true });
+  }
+})();
+</script>
+</body>
+</html>
